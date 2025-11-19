@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import subprocess
 import requests
 import os
@@ -9,7 +9,6 @@ app = Flask(__name__)
 
 def get_google_drive_download_url(url):
     """Convert Google Drive URL to direct download URL"""
-    # Extract file ID from various Google Drive URL formats
     file_id = None
     
     if 'drive.google.com/uc?export=download&id=' in url:
@@ -38,13 +37,13 @@ def merge_video():
         video_path = os.path.join(temp_dir, 'video.mp4')
         output_path = os.path.join(temp_dir, 'final.mp4')
         
-        # Download voice with headers
+        # Download voice
         session = requests.Session()
         voice_response = session.get(voice_url, allow_redirects=True)
         with open(voice_path, 'wb') as f:
             f.write(voice_response.content)
         
-        # Download video with headers
+        # Download video
         video_response = session.get(video_url, allow_redirects=True)
         with open(video_path, 'wb') as f:
             f.write(video_response.content)
@@ -63,14 +62,13 @@ def merge_video():
                 'details': result.stderr
             }), 500
         
-        # Get file size
-        file_size = os.path.getsize(output_path)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Video merged successfully',
-            'size': file_size
-        })
+        # Return the merged video file
+        return send_file(
+            output_path,
+            mimetype='video/mp4',
+            as_attachment=True,
+            download_name='merged_video.mp4'
+        )
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
